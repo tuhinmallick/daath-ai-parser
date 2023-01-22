@@ -21,35 +21,38 @@ class PromptCreator:
     self.number_of_labels = len(self.prompt_objects.labels)
 
   def get_main_prompt(self):
-    return re.sub("NUMBER_OF_LABELS", "{}".format(self.number_of_labels), self.classifier.main_prompt)
+    return re.sub(
+        "NUMBER_OF_LABELS",
+        f"{self.number_of_labels}",
+        self.classifier.main_prompt,
+    )
 
   def get_example_lines(self):
     return "\n".join([example.text for example in self.classifier.examples_for_prompt])
 
   def get_desired_lines(self, lines):
-    desired_lines_string = "\n" + "\n".join(lines) + "\n"
-    return desired_lines_string
+    return "\n" + "\n".join(lines) + "\n"
   
   def get_table_labels(self):
-    table_labels_string = "|" + "".join(([" {} |".format(label) for label in self.prompt_objects.labels ])) + "\n"
-    return table_labels_string
+    return (
+        "|" + "".join([f" {label} |"
+                       for label in self.prompt_objects.labels]) + "\n")
 
   def get_table_separator(self):
-    table_separator_string = "|" + "".join([" --- |" for i in self.prompt_objects.labels]) + "\n"
-    return table_separator_string
+    return "|" + "".join([" --- |" for _ in self.prompt_objects.labels]) + "\n"
 
   def get_example_rows(self):
     for example in self.classifier.examples_for_prompt:
       row_text = "|"
       for key in self.keys:
         if key in example.classifications:
-          row_text = row_text + " {} |".format(example.classifications[key])
+          row_text = f"{row_text} {example.classifications[key]} |"
         else:
-          row_text = row_text + " - |"
+          row_text = f"{row_text} - |"
       row_text = row_text + "\n"
       self.example_rows.append(row_text)
     self.example_rows = "".join(self.example_rows)
-    self.example_rows = self.example_rows[0:-1]
+    self.example_rows = self.example_rows[:-1]
     return self.example_rows
 
   def calculate_token_size(self, line):
@@ -62,12 +65,12 @@ class PromptCreator:
 
   def separate_for_calls(self):
     token_sizes_of_lines = [(5 + self.calculate_token_size(line)) for line in self.prompt_objects.desired_lines]
-    
+
     invalid_lines_indexes = []
     valid_calls = []
     valid_call = []
     previous_max_token_size = 0
-    for size, line, i in zip(token_sizes_of_lines, self.prompt_objects.desired_lines, range(0, len(token_sizes_of_lines))):
+    for size, line, i in zip(token_sizes_of_lines, self.prompt_objects.desired_lines, range(len(token_sizes_of_lines))):
       previous_max_token_size = self.get_maximum_token_size(previous_max_token_size, line)
       if (self.base_prompt_token_size + size) > self.model_specific_token_size:
         invalid_lines_indexes.append(i)
@@ -92,7 +95,7 @@ class PromptCreator:
     table_labels_string = self.get_table_labels()
     table_separator_string = self.get_table_separator()
     example_rows = self.get_example_rows()
-    
+
     prompt = "".join([
       main_prompt_string,
       example_lines_string,
@@ -101,7 +104,7 @@ class PromptCreator:
       table_separator_string,
       example_rows
     ])
-    
+
     max_tokens_size = self.get_maximum_token_size(0, prompt)
     total_estimated_token_size = self.calculate_token_size(prompt) + max_tokens_size
 
@@ -119,7 +122,7 @@ class PromptCreator:
       if valid_calls == []:
         self.prompt_objects.prompts = []
       else:
-        for i in range(0,len(valid_calls)):
+        for i in range(len(valid_calls)):
           desired_lines_string = self.get_desired_lines(valid_calls[i])
           valid_calls[i] = "".join([
             main_prompt_string,

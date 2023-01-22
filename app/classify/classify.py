@@ -11,7 +11,7 @@ class Classify:
 		if targets.mock_name != None and "PYTEST_CURRENT_TEST" not in os.environ:
 			return {"error": "Mock name is only allowed in unit tests."}
 
-		if targets.parse_only == None:
+		if targets.parse_only is None:
 			# Create a new mock dictionary for target if given		
 			if targets.mock_name != None and os.environ["PYTEST_CURRENT_TEST"] != None:
 				try:
@@ -30,19 +30,21 @@ class Classify:
 				targets = Targets(**targets_dict)
 
 			# Call the parser command dictionary or return an error
-			if targets.classifier != None and (targets.parse_only == False or targets.parse_only == None):
+			if targets.classifier != None and (
+				targets.parse_only == False or targets.parse_only is None
+			):
 				classifier = json_to_pydantic(targets.classifier.dict())
 			else:
 				try:
 					parser = targets.path
-					path = "app.classify.parsers.{}".format(parser.lower())
+					path = f"app.classify.parsers.{parser.lower()}"
 					classifier = importlib.import_module(path)
 					classifier = classifier.commands()
 					if type(classifier) == dict:
 						return classifier
 				except:
 					return {"error": "Could not find parser classifier commands"}
-			
+
 			# Parse the incoming body whether it is html, text, or a mixbag of them
 			parser = Parser(classifier = classifier)
 			desired_lines = parser.parse(targets.targets)
@@ -55,7 +57,7 @@ class Classify:
 			# Return an error if all bodies are illegal
 			if prompt_objects.prompts == []:
 				return {"error": "None of the items are below maximum token threshold for this prompt."}
-			
+
 			# Return mock prompt results, or create a new one, or return prompt results
 			if targets.prompts_only == True and targets.mock_name != None and os.environ["PYTEST_CURRENT_TEST"] != None:
 				mock_prompt_name = targets.mock_name.replace(".json", "-prompt.json")
@@ -95,17 +97,16 @@ class Classify:
 					result = json.load(json_file)
 				return result
 			except:
-				if targets.parse_only != None:
-					results = Results(targets = targets, classifier = None, prompt_objects = targets.parse_only.prompt_objects)
-					results_to_write = results.to_json()
-				else:
+				if targets.parse_only is None:
 					results = Results(targets = targets, classifier = classifier, prompt_objects = prompt_objects)
 					results.get_results_from_openai()
-					results_to_write = results.to_json()
+				else:
+					results = Results(targets = targets, classifier = None, prompt_objects = targets.parse_only.prompt_objects)
+				results_to_write = results.to_json()
 				with open(mock_result_name, "w") as pretty_json:
 					json.dump({"results": results_to_write}, pretty_json, indent=2, sort_keys=False)
 				return {"results": results_to_write}
-		
+
 		# Return classified results
 		if targets.parse_only != None:
 			results = Results(targets = targets, classifier = None, prompt_objects = targets.parse_only.prompt_objects)

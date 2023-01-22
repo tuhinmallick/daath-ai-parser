@@ -25,7 +25,7 @@ class Results:
           return await resp.json()
       except:
         return {"error": "Error from Local Machine"}
-    
+
     async def get_results(concurrent_prompts):
       connector = aiohttp.TCPConnector(limit=None)
       async with aiohttp.ClientSession(connector=connector) as session:
@@ -39,11 +39,11 @@ class Results:
     else:
       all_prompt_calls = []
       remainder = len(self.prompt_objects.prompts) % self.targets.allowed_concurrency
-      if remainder != 0 and remainder != len(self.prompt_objects.prompts):
+      if remainder not in [0, len(self.prompt_objects.prompts)]:
         remainder_prompts = self.prompt_objects.prompts[(0 - remainder):]
-        array_without_remainder = self.prompt_objects.prompts[0:(0 - remainder)]
+        array_without_remainder = self.prompt_objects.prompts[:0 - remainder]
         concurrent_prompts = []
-        for prompt, i in zip(array_without_remainder, range(0, len(array_without_remainder))):
+        for prompt, i in zip(array_without_remainder, range(len(array_without_remainder))):
           concurrent_prompts.append(prompt)
           if i != 0 and self.targets.allowed_concurrency % i == 0:
             all_prompt_calls.append(concurrent_prompts)
@@ -55,7 +55,7 @@ class Results:
         if len(array_without_remainder) == 1:
           all_prompt_calls = [array_without_remainder]
         else:
-          for prompt, i in zip(array_without_remainder, range(0, len(array_without_remainder))):
+          for prompt, i in zip(array_without_remainder, range(len(array_without_remainder))):
             concurrent_prompts.append(prompt)
             if i != 0 and self.targets.allowed_concurrency % i == 0:
               all_prompt_calls.append(concurrent_prompts)
@@ -78,7 +78,7 @@ class Results:
         response = response['choices'][0]['text']
         lines = response.split("\n")
         lines = [line for line in lines if line != '']
-        for line, line_index in zip(lines, range(0, len(lines))):
+        for line, line_index in zip(lines, range(len(lines))):
           result_dict = {}
           line = re.split(r" \| |\| | \|", line)
           line = [word for word in line if word != '']
@@ -102,8 +102,8 @@ class Results:
                 result_dict = {"error": "The prompt is creating more results than expected. Try to restructure targets, and or examples."}
           results.append(result_dict)
         index = index + len(lines)
-    
-    if results == []:
+
+    if not results:
       results = [{"error": "The model predicted a completion that begins with a stop sequence, resulting in no output. Consider adjusting your prompt or stop sequences."}]
-    
+
     return results

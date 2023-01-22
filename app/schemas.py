@@ -48,22 +48,21 @@ class Targets(BaseModel):
 
 
 def json_to_pydantic(classifier_json):
-	if "examples_for_prompt" in classifier_json:
-		examples_for_prompt = []
-		for example in classifier_json['examples_for_prompt']:
-			try:
-				examples_for_prompt.append(ClassifierExampleForPrompt(**example))
-			except:
-				return {"error": "Unknown Example Structure"}
-	else:
+	if "examples_for_prompt" not in classifier_json:
 		return {"error": "No examples provided for prompt"}
-	
+
+	examples_for_prompt = []
+	for example in classifier_json['examples_for_prompt']:
+		try:
+			examples_for_prompt.append(ClassifierExampleForPrompt(**example))
+		except:
+			return {"error": "Unknown Example Structure"}
 	if "data" in classifier_json:
 		try:
 			data = TextDaVinci2DefaultData(**classifier_json['data'])
 		except:
 			return {"error": "Unkown or Unsupported Model Data"}
-	
+
 	try:
 		classifier_json.pop('examples_for_prompt')
 		classifier_json.pop('data')

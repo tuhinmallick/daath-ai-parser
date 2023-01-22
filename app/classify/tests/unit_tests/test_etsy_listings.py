@@ -1,5 +1,5 @@
 import sys, os
-sys.path.append(os.path.realpath(os.path.dirname(__file__)+"/../../../.."))
+sys.path.append(os.path.realpath(f"{os.path.dirname(__file__)}/../../../.."))
 
 from fastapi.testclient import TestClient
 from app.schemas import *
